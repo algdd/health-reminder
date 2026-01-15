@@ -1,0 +1,76 @@
+<idea-plugin>
+    <id>com.healthreminder.plugin</id>
+    <name>Health Reminder</name>
+    <vendor email="support@healthreminder.com" url="https://github.com/healthreminder">Health Reminder</vendor>
+
+    <description><![CDATA[
+    <p>健康提醒插件,帮助您在长时间编码时保持健康习惯。</p>
+    <h3>功能特性:</h3>
+    <ul>
+        <li>定时提醒喝水(默认30分钟)</li>
+        <li>定时提醒休息眼睛(默认20分钟)</li>
+        <li>支持自定义提醒类型</li>
+        <li>多种提醒方式:弹窗对话框、气泡通知、状态栏提示</li>
+        <li>暂停/恢复提醒功能</li>
+        <li>统计功能:查看今日提醒次数和历史记录</li>
+        <li>"稍后提醒"功能(5分钟后重新提醒)</li>
+        <li>状态栏显示下次提醒倒计时</li>
+    </ul>
+    ]]></description>
+
+    <change-notes><![CDATA[
+    <h3>1.0.0</h3>
+    <ul>
+        <li>初始版本发布</li>
+        <li>支持喝水和休息眼睛提醒</li>
+        <li>支持自定义提醒</li>
+        <li>提供统计功能</li>
+    </ul>
+    ]]></change-notes>
+
+    <!-- 兼容 IntelliJ IDEA 2025.3.1+ -->
+    <idea-version since-build="253.0"/>
+
+    <!-- 依赖 -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- 扩展点 -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- 应用级服务 -->
+        <applicationService serviceImplementation="com.healthreminder.service.ReminderService"/>
+        <applicationService serviceImplementation="com.healthreminder.service.SchedulerService"/>
+        <applicationService serviceImplementation="com.healthreminder.service.NotificationService"/>
+        <applicationService serviceImplementation="com.healthreminder.service.StatisticsService"/>
+        
+        <!-- 持久化组件 -->
+        <applicationService serviceImplementation="com.healthreminder.settings.ReminderSettings"/>
+        <applicationService serviceImplementation="com.healthreminder.settings.StatisticsState"/>
+        
+        <!-- 设置页面 -->
+        <applicationConfigurable 
+            parentId="tools" 
+            instance="com.healthreminder.ui.settings.ReminderSettingsConfigurable"
+            id="com.healthreminder.settings"
+            displayName="Health Reminder"/>
+        
+        <!-- 工具窗口 -->
+        <toolWindow 
+            id="Health Statistics" 
+            anchor="right" 
+            factoryClass="com.healthreminder.ui.toolwindow.StatisticsToolWindowFactory"
+            icon="/icons/reminder.svg"/>
+        
+        <!-- 状态栏组件 -->
+        <statusBarWidgetFactory 
+            id="com.healthreminder.statusbar"
+            implementation="com.healthreminder.ui.statusbar.ReminderStatusBarWidgetFactory"/>
+        
+        <!-- 启动监听器 -->
+        <postStartupActivity implementation="com.healthreminder.ReminderStartupActivity"/>
+    </extensions>
+
+    <!-- Actions -->
+    <actions>
+        <!-- 可以在这里添加菜单项或工具栏按钮 -->
+    </actions>
+</idea-plugin>
