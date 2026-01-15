@@ -1,6 +1,12 @@
 # Gradle
 .gradle/
-build/
+# 忽略整个 build 目录
+build/**
+
+# 逐级放行：先放行 libs 目录，再放行 jar 文件
+!build/libs/
+!build/libs/*.jar
+
 !gradle/wrapper/gradle-wrapper.jar
 gradle-app.setting
 !**/src/main/**/build/
