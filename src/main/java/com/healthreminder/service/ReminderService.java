@@ -101,6 +101,12 @@ public final class ReminderService {
         NotificationService notificationService = NotificationService.getInstance();
 
         Runnable reminderTask = () -> {
+            // Check if in active time
+            if (!ReminderSettings.getInstance().isInActiveTime()) {
+                LOG.info("Skipping reminder because it is outside of active time ranges.");
+                return;
+            }
+
             LOG.info("Triggering reminder: " + config.getType().getDisplayName());
             
             notificationService.showReminder(

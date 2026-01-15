@@ -27,6 +27,7 @@ public class ReminderSettings implements PersistentStateComponent<ReminderSettin
     
     public List<ReminderConfigState> reminders = new ArrayList<>();
     public boolean globalPaused = false;
+    public List<String> activeTimeRanges = new ArrayList<>();
 
     public static ReminderSettings getInstance() {
         return ApplicationManager.getApplication().getService(ReminderSettings.class);
@@ -64,6 +65,11 @@ public class ReminderSettings implements PersistentStateComponent<ReminderSettin
             );
             reminders.add(ReminderConfigState.fromConfig(eyeRest));
         }
+        
+        if (activeTimeRanges.isEmpty()) {
+            activeTimeRanges.add("09:00-12:00");
+            activeTimeRanges.add("13:30-16:00");
+        }
     }
 
     /**
@@ -85,6 +91,32 @@ public class ReminderSettings implements PersistentStateComponent<ReminderSettin
         for (ReminderConfig config : configs) {
             reminders.add(ReminderConfigState.fromConfig(config));
         }
+    }
+
+    /**
+     * 检查当前时间是否在启用时间段内
+     */
+    public boolean isInActiveTime() {
+        if (activeTimeRanges.isEmpty()) {
+            return true;
+        }
+
+        java.time.LocalTime now = java.time.LocalTime.now();
+        for (String range : activeTimeRanges) {
+            try {
+                String[] parts = range.split("-");
+                if (parts.length == 2) {
+                    java.time.LocalTime start = java.time.LocalTime.parse(parts[0].trim());
+                    java.time.LocalTime end = java.time.LocalTime.parse(parts[1].trim());
+                    if (!now.isBefore(start) && !now.isAfter(end)) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                // 忽略格式错误的时间段
+            }
+        }
+        return false;
     }
 
     /**

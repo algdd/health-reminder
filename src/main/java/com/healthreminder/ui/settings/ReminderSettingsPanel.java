@@ -27,6 +27,8 @@ public class ReminderSettingsPanel {
     private JButton deleteButton;
     private JButton pauseResumeButton;
     private JLabel statusLabel;
+    private JList<String> activeTimeList;
+    private DefaultListModel<String> activeTimeListModel;
     
     private List<ReminderConfig> currentConfigs;
 
@@ -39,20 +41,74 @@ public class ReminderSettingsPanel {
         mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // 顶部状态栏
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // 顶部面板容器
+        JPanel northContainer = new JPanel();
+        northContainer.setLayout(new BoxLayout(northContainer, BoxLayout.Y_AXIS));
+
+        // 状态栏面板
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusLabel = new JLabel();
         updateStatusLabel();
-        topPanel.add(statusLabel);
+        statusPanel.add(statusLabel);
         
         pauseResumeButton = new JButton();
         updatePauseResumeButton();
         pauseResumeButton.addActionListener(e -> togglePauseResume());
-        topPanel.add(pauseResumeButton);
-        
-        mainPanel.add(topPanel, BorderLayout.NORTH);
+        statusPanel.add(pauseResumeButton);
+        northContainer.add(statusPanel);
 
-        // 中间表格
+        // 时间段配置面板
+        JPanel timeRangePanel = new JPanel(new BorderLayout(5, 5));
+        timeRangePanel.setBorder(BorderFactory.createTitledBorder("启用时间段"));
+        
+        activeTimeListModel = new DefaultListModel<>();
+        activeTimeList = new JList<>(activeTimeListModel);
+        activeTimeList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane listScrollPane = new JScrollPane(activeTimeList);
+        listScrollPane.setPreferredSize(new Dimension(300, 80));
+        timeRangePanel.add(listScrollPane, BorderLayout.CENTER);
+        
+        JPanel timeButtonPanel = new JPanel();
+        timeButtonPanel.setLayout(new BoxLayout(timeButtonPanel, BoxLayout.Y_AXIS));
+        
+        JButton addTimeButton = new JButton("添加");
+        addTimeButton.addActionListener(e -> addTimeRange());
+        timeButtonPanel.add(addTimeButton);
+        
+        JButton editTimeButton = new JButton("编辑");
+        editTimeButton.addActionListener(e -> editTimeRange());
+        timeButtonPanel.add(editTimeButton);
+        
+        JButton removeTimeButton = new JButton("删除");
+        removeTimeButton.addActionListener(e -> removeTimeRange());
+        timeButtonPanel.add(removeTimeButton);
+        
+        timeRangePanel.add(timeButtonPanel, BorderLayout.EAST);
+        northContainer.add(timeRangePanel);
+        
+        mainPanel.add(northContainer, BorderLayout.NORTH);
+
+        // 中间表格容器
+        JPanel centerContainer = new JPanel(new BorderLayout(5, 5));
+        
+        // 按钮面板 (移动到表格上方)
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+        addButton = new JButton("添加提醒");
+        addButton.addActionListener(e -> addReminder());
+        buttonPanel.add(addButton);
+        
+        editButton = new JButton("编辑提醒");
+        editButton.addActionListener(e -> editReminder());
+        buttonPanel.add(editButton);
+        
+        deleteButton = new JButton("删除提醒");
+        deleteButton.addActionListener(e -> deleteReminder());
+        buttonPanel.add(deleteButton);
+        
+        centerContainer.add(buttonPanel, BorderLayout.NORTH);
+
+        // 表格
         String[] columnNames = {"类型", "间隔(分钟)", "消息", "提醒方式", "启用"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
@@ -66,29 +122,22 @@ public class ReminderSettingsPanel {
         reminderTable.getTableHeader().setReorderingAllowed(false);
         
         JScrollPane scrollPane = new JScrollPane(reminderTable);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-
-        // 底部按钮
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        centerContainer.add(scrollPane, BorderLayout.CENTER);
         
-        addButton = new JButton("添加");
-        addButton.addActionListener(e -> addReminder());
-        buttonPanel.add(addButton);
-        
-        editButton = new JButton("编辑");
-        editButton.addActionListener(e -> editReminder());
-        buttonPanel.add(editButton);
-        
-        deleteButton = new JButton("删除");
-        deleteButton.addActionListener(e -> deleteReminder());
-        buttonPanel.add(deleteButton);
-        
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        mainPanel.add(centerContainer, BorderLayout.CENTER);
     }
 
     private void loadSettings() {
         ReminderSettings settings = ReminderSettings.getInstance();
         currentConfigs = new ArrayList<>(settings.getAllReminders());
+        
+        // 加载启用时间段
+        activeTimeListModel.clear();
+        if (settings.activeTimeRanges != null) {
+            for (String range : settings.activeTimeRanges) {
+                activeTimeListModel.addElement(range);
+            }
+        }
         
         // 清空表格
         tableModel.setRowCount(0);
@@ -219,9 +268,57 @@ public class ReminderSettingsPanel {
         return mainPanel;
     }
 
+    private void addTimeRange() {
+        TimeRangeEditDialog dialog = new TimeRangeEditDialog(null);
+        dialog.pack();
+        dialog.setLocationRelativeTo(mainPanel);
+        dialog.setVisible(true);
+        
+        String result = dialog.getResult();
+        if (result != null) {
+            activeTimeListModel.addElement(result);
+        }
+    }
+
+    private void editTimeRange() {
+        int selectedIndex = activeTimeList.getSelectedIndex();
+        if (selectedIndex == -1) {
+            return;
+        }
+        
+        String currentRange = activeTimeListModel.get(selectedIndex);
+        TimeRangeEditDialog dialog = new TimeRangeEditDialog(currentRange);
+        dialog.pack();
+        dialog.setLocationRelativeTo(mainPanel);
+        dialog.setVisible(true);
+        
+        String result = dialog.getResult();
+        if (result != null) {
+            activeTimeListModel.set(selectedIndex, result);
+        }
+    }
+
+    private void removeTimeRange() {
+        int selectedIndex = activeTimeList.getSelectedIndex();
+        if (selectedIndex != -1) {
+            activeTimeListModel.remove(selectedIndex);
+        }
+    }
+
     public boolean isModified() {
         ReminderSettings settings = ReminderSettings.getInstance();
         List<ReminderConfig> savedConfigs = settings.getAllReminders();
+        
+        // 检查时间段是否变化
+        List<String> currentRanges = new ArrayList<>();
+        for (int i = 0; i < activeTimeListModel.getSize(); i++) {
+            currentRanges.add(activeTimeListModel.get(i));
+        }
+        
+        List<String> savedRanges = settings.activeTimeRanges != null ? settings.activeTimeRanges : new ArrayList<>();
+        if (!currentRanges.equals(savedRanges)) {
+            return true;
+        }
         
         if (currentConfigs.size() != savedConfigs.size()) {
             return true;
@@ -234,6 +331,13 @@ public class ReminderSettingsPanel {
     public void apply() {
         ReminderSettings settings = ReminderSettings.getInstance();
         settings.saveReminders(currentConfigs);
+        
+        // 保存启用时间段
+        List<String> rangeList = new ArrayList<>();
+        for (int i = 0; i < activeTimeListModel.getSize(); i++) {
+            rangeList.add(activeTimeListModel.get(i));
+        }
+        settings.activeTimeRanges = rangeList;
         
         // 重新加载提醒
         ReminderService.getInstance().reloadReminders();
