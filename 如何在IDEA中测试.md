@@ -150,3 +150,7 @@ A:
 3. **发布到 JetBrains Marketplace**: 分享给其他开发者
 
 祝测试顺利! 🎉
+
+
+.\gradlew.bat clean
+.\gradlew.bat runIde --refresh-dependencies
